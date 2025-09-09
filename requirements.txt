@@ -1,0 +1,11 @@
+monai>=1.3.1
+torch>=2.2
+torchvision>=0.17
+numpy
+tqdm
+pyyaml
+pandas
+scikit-image
+SimpleITK
+nibabel
+tensorboard
