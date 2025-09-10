@@ -5,7 +5,7 @@ numpy
 tqdm
 pyyaml
 pandas
-scikit-image
-SimpleITK
-nibabel
+opencv-python
+Pillow
 tensorboard
+scikit-image

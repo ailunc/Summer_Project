@@ -1,0 +1,46 @@
+# MedSegBench 2D baseline config
+seed: 42
+deterministic: true
+
+data:
+  root: ${data_root}
+  train_list: ${data.root}/splits/train.txt
+  val_list: ${data.root}/splits/val.txt
+  num_workers: 4
+  cache_rate: 0.0
+  size: [512, 512]        # H, W
+  num_classes: 2          # include background
+  mean: [0.5]             # grayscale default; if RGB use [0.485,0.456,0.406]
+  std:  [0.5]             # grayscale default; if RGB use [0.229,0.224,0.225]
+  rgb: false              # set true if RGB images
+  image_key: 'image'      # npz key for image
+  mask_key: 'mask'        # npz key for mask
+
+trainer:
+  batch_size: 8
+  max_epochs: 100
+  val_every: 1
+  amp: true
+  grad_clip: 1.0
+
+optim:
+  lr: 2.0e-4
+  weight_decay: 1.0e-5
+  betas: [0.9, 0.999]
+  scheduler:
+    type: cosine
+    t_max: 100
+    eta_min: 1.0e-6
+
+model:
+  in_channels: 1          # set 3 if rgb
+  out_channels: ${data.num_classes}
+  channels: [32, 64, 128, 256]
+  strides:  [2, 2, 2]
+  dropout: 0.1
+
+logging:
+  work_dir: ${work_dir}
+  ckpt_dir: ${work_dir}/checkpoints
+  log_dir: ${work_dir}/tb
+  results_csv: ${work_dir}/results.csv

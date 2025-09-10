@@ -1,60 +1,56 @@
-# AbdomenCT-1K Baseline (MONAI + PyTorch)
+# MedSegBench 2D Baseline (MONAI + PyTorch)
 
-A minimal, reproducible baseline to evaluate open‑source medical image segmentation models on **AbdomenCT‑1K** using a standard 3D UNet in MONAI.
+A lightweight, reproducible baseline for training/evaluating **2D medical image segmentation** on **MedSegBench** (35 datasets across ultrasound, X-ray, endoscopy, dermoscopy, MRI, CT, etc.).
+This repo avoids heavyweight 3D volumes and works on a per-image basis to keep storage & compute modest.
 
-> This follows the proposal: evaluate five open-source models/frameworks on a benchmark **not used in their original papers**. Here we implement a clean, extensible codebase for **AbdomenCT‑1K** multi‑organ segmentation.
+## Why MedSegBench?
+- Smaller per-dataset footprint than large 3D CT volumes (e.g., AbdomenCT-1K >100GB).
+- Diverse modalities & anatomies to stress-test generalization.
 
-## Features
-- 3D UNet (MONAI) with Dice + Cross‑Entropy loss
-- Reproducible splits (train/val/test) and deterministic seed
-- Per‑class Dice + mean Dice metrics
-- Config‑driven (YAML) pipeline
-- Mixed precision (AMP) + gradient clipping
-- Saves best model (by validation mean Dice), metrics CSV, tensorboard logs
-
-## Dataset (AbdomenCT‑1K)
-- Please obtain AbdomenCT‑1K following the dataset license.
-- Expected structure after preparation (NIfTI):
+## Folder Layout (Unified Format)
+Prepare one MedSegBench subset at a time into the following layout (you can symlink/copy from the official release):
 ```
 DATA_ROOT/
-  imagesTr/*.nii.gz
-  labelsTr/*.nii.gz      # integer mask with class IDs
+  images/                # *.png/*.jpg/*.tif ...
+  masks/                 # same filenames as images, integer index masks
+  splits/
+    train.txt            # each line is a basename without extension (e.g., case_0001)
+    val.txt
+    test.txt             # optional
 ```
-- Then run the provided script to create split files (`splits/train.txt`, `splits/val.txt`, `splits/test.txt`).
+> Example: `images/case_0001.png` + `masks/case_0001.png`
+
+If you don't have official splits, generate them:
+```bash
+python scripts/prepare_medsegbench.py --data_root Dataset/
+```
 
 ## Quickstart
-### 1) Create environment
+export GOOGLE_CLOUD_PROJECT="summerproject-471608"
+### 1) Environment
 ```bash
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2) Prepare splits
+### 2) Train
 ```bash
-python scripts/prepare_abdomenct1k.py   --data_root /path/to/abdomenct1k   --val_ratio 0.1 --test_ratio 0.1   --seed 42
+python src/train2d.py --config configs/medsegbench.yaml   data_root=Dataset/   work_dir=work_dir   data.num_classes=2        # set to actual number of classes incl. background
 ```
 
-### 3) Train
+### 3) Inference (single image)
 ```bash
-python src/train.py --config configs/abdomenct1k.yaml   data_root=/path/to/abdomenct1k   work_dir=/path/to/workdir
-```
-
-### 4) Validate / Inference (single volume example)
-```bash
-python src/infer.py   --checkpoint /path/to/workdir/checkpoints/best_metric_model.pt   --image /path/to/abdomenct1k/imagesTr/case_0001.nii.gz   --out_pred /path/to/workdir/preds/case_0001_pred.nii.gz
-```
-
-## Config overrides
-Most keys in the YAML can be overridden from CLI, e.g.:
-```bash
-python src/train.py --config configs/abdomenct1k.yaml   trainer.max_epochs=200 optim.lr=1e-4 data.patch_size="[128,128,64]"
+python src/infer2d.py   --checkpoint work_dir/checkpoints/best_metric_model.pt   --image Dataset/images/case_0001.png   --out_mask work_dir/preds/case_0001_pred.png   --num_classes 2
 ```
 
 ## Notes
-- By default, we assume **background=0** and foreground classes starting from 1 consecutively.
-- Update `num_classes` in config if your label schema differs.
-- This baseline intentionally uses a single, solid UNet to provide a fair point of comparison.
-- You can plug in other backbones (e.g., KM‑UNet variants) by replacing `build_model` in `src/train.py`.
+- Masks must be **integer label maps** with class IDs in `[0..C-1]`. Background=0.
+- Update `data.num_classes` to match your subset.
+- This baseline uses 2D UNet; swap in other backbones easily in `build_model()`.
+- Metrics: mean Dice (exclude background), per-class Dice, mean IoU (Jaccard).
 
-## License
-This baseline code is MIT licensed. The dataset is governed by its original license.
+## Roadmap (optional)
+- Add multi-dataset training (domain generalization)
+- Add TTA & ensembling
+- Add more metrics (Hausdorff95, boundary F-score)
