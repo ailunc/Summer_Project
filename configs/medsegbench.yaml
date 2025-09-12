@@ -9,7 +9,7 @@ data:
   num_workers: 4
   cache_rate: 0.0
   size: [512, 512]        # H, W
-  num_classes: 2          # include background
+  num_classes: 3          # include background
   mean: [0.5]             # grayscale default; if RGB use [0.485,0.456,0.406]
   std:  [0.5]             # grayscale default; if RGB use [0.229,0.224,0.225]
   rgb: false              # set true if RGB images
